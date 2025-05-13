@@ -404,6 +404,7 @@ export function Root({
       });
 
       if (snapPoints) {
+        console.log('on drag if snap points', snapPoints);
         onDragSnapPoints({ draggedDistance });
       }
 
@@ -678,6 +679,10 @@ export function Root({
   }, [isOpen]);
 
   function onNestedOpenChange(o: boolean) {
+    if (snapPoints && snapPoints.length > 0) {
+      return;
+    }
+
     const scale = o ? (window.innerWidth - NESTED_DISPLACEMENT) / window.innerWidth : 1;
 
     const initialTranslate = o ? -NESTED_DISPLACEMENT : 0;
@@ -707,6 +712,9 @@ export function Root({
   }
 
   function onNestedDrag(_event: React.PointerEvent<HTMLDivElement>, percentageDragged: number) {
+    if (snapPoints && snapPoints.length > 0) {
+      return;
+    }
     if (percentageDragged < 0) return;
 
     const initialScale = (window.innerWidth - NESTED_DISPLACEMENT) / window.innerWidth;
@@ -722,6 +730,9 @@ export function Root({
   }
 
   function onNestedRelease(_event: React.PointerEvent<HTMLDivElement>, o: boolean) {
+    if (snapPoints && snapPoints.length > 0) {
+      return;
+    }
     const dim = isVertical(direction) ? window.innerHeight : window.innerWidth;
     const scale = o ? (dim - NESTED_DISPLACEMENT) / dim : 1;
     const translate = o ? -NESTED_DISPLACEMENT : 0;
@@ -1102,11 +1113,11 @@ export function NestedRoot({ onDrag, onOpenChange, open: nestedIsOpen, ...rest }
     throw new Error('Drawer.NestedRoot must be placed in another drawer');
   }
 
-  React.useEffect(() => {
-    if (nestedIsOpen) {
-      onNestedOpenChange(true);
-    }
-  }, [nestedIsOpen]);
+  // React.useEffect(() => {
+  //   if (nestedIsOpen) {
+  //     onNestedOpenChange(true);
+  //   }
+  // }, [nestedIsOpen]);
 
   return (
     <Root
@@ -1121,6 +1132,7 @@ export function NestedRoot({ onDrag, onOpenChange, open: nestedIsOpen, ...rest }
       }}
       onOpenChange={(o) => {
         if (o) {
+          // check this? is calling parent onOpenChange event?
           onNestedOpenChange(o);
         }
         onOpenChange?.(o);
