@@ -505,8 +505,20 @@ function useControllableState({ prop, defaultProp, onChange = ()=>{} }) {
     ];
 }
 
-function useSnapPoints({ activeSnapPointProp, setActiveSnapPointProp, snapPoints, drawerRef, overlayRef, fadeFromIndex, onSnapPointChange, direction = 'bottom', container, snapToSequentialPoint }) {
+function useSnapPoints({ activeSnapPointProp, setActiveSnapPointProp, snapPoints, drawerRef, overlayRef, fadeFromIndex, onSnapPointChange, direction = 'bottom', container, snapToSequentialPoint, isOpen }) {
     var _drawerRef_current;
+    const [drawerDimensions, setDrawerDimensions] = React__default.useState(null);
+    React__default.useLayoutEffect(()=>{
+        if (isOpen && drawerRef.current) {
+            const rect = drawerRef.current.getBoundingClientRect();
+            setDrawerDimensions({
+                width: rect.width,
+                height: rect.height
+            });
+        }
+    }, [
+        isOpen
+    ]);
     const [activeSnapPoint, setActiveSnapPoint] = useControllableState({
         prop: activeSnapPointProp,
         defaultProp: snapPoints == null ? void 0 : snapPoints[0],
@@ -550,10 +562,7 @@ function useSnapPoints({ activeSnapPointProp, setActiveSnapPointProp, snapPoints
             width: 0,
             height: 0
         };
-        const contentSize = drawerRect ? {
-            width: drawerRect.width,
-            height: drawerRect.height
-        } : containerSize;
+        const contentSize = drawerDimensions || containerSize;
         var _snapPoints_map;
         return (_snapPoints_map = snapPoints == null ? void 0 : snapPoints.map((snapPoint)=>{
             const isPx = typeof snapPoint === 'string';
@@ -578,7 +587,8 @@ function useSnapPoints({ activeSnapPointProp, setActiveSnapPointProp, snapPoints
         snapPoints,
         windowDimensions,
         container,
-        drawerRect
+        drawerRect,
+        drawerDimensions
     ]);
     const activeSnapPointOffset = React__default.useMemo(()=>activeSnapPointIndex !== null ? snapPointsOffset == null ? void 0 : snapPointsOffset[activeSnapPointIndex] : null, [
         snapPointsOffset,
@@ -941,7 +951,8 @@ function Root({ open: openProp, onOpenChange, children, onDragStart: onDragStart
         onSnapPointChange,
         direction,
         container,
-        snapToSequentialPoint
+        snapToSequentialPoint,
+        isOpen
     });
     usePreventScroll({
         isDisabled: !isOpen || isDragging || !modal || justReleased || !hasBeenOpened || !repositionInputs || !disablePreventScroll
