@@ -29,7 +29,14 @@ export function useSnapPoints({
   snapToSequentialPoint?: boolean;
   isOpen?: boolean;
 }) {
-  const [drawerDimensions, setDrawerDimensions] = React.useState<{ width: number; height: number } | null>(null);
+  const drawerRect = drawerRef.current?.getBoundingClientRect();
+  
+  // Add state for dynamic dimensions
+  const [drawerDimensions, setDrawerDimensions] = React.useState(
+    drawerRect 
+      ? { width: drawerRect.width, height: drawerRect.height }
+      : null
+  );
 
   React.useLayoutEffect(() => {
     if (isOpen && drawerRef.current) {
@@ -86,15 +93,16 @@ export function useSnapPoints({
       snapPoints[fadeFromIndex] === activeSnapPoint) ||
     !snapPoints;
 
-  const drawerRect = drawerRef.current?.getBoundingClientRect();
-
   const snapPointsOffset = React.useMemo(() => {
     const containerSize = container
       ? { width: container.getBoundingClientRect().width, height: container.getBoundingClientRect().height }
       : typeof window !== 'undefined'
       ? { width: window.innerWidth, height: window.innerHeight }
       : { width: 0, height: 0 };
-    const contentSize = drawerDimensions || containerSize;
+    const contentSize = drawerDimensions || 
+      (drawerRect ? { width: drawerRect.width, height: drawerRect.height } : 
+      containerSize);
+
 
     return (
       snapPoints?.map((snapPoint) => {
@@ -123,7 +131,7 @@ export function useSnapPoints({
         return width;
       }) ?? []
     );
-  }, [snapPoints, windowDimensions, container, drawerRect, drawerDimensions]);
+  }, [snapPoints, windowDimensions, container, drawerDimensions]);
 
   const activeSnapPointOffset = React.useMemo(
     () => (activeSnapPointIndex !== null ? snapPointsOffset?.[activeSnapPointIndex] : null),
