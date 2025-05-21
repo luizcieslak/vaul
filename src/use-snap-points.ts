@@ -72,12 +72,15 @@ export function useSnapPoints({
       snapPoints[fadeFromIndex] === activeSnapPoint) ||
     !snapPoints;
 
+  const drawerRect = drawerRef.current?.getBoundingClientRect();
+
   const snapPointsOffset = React.useMemo(() => {
     const containerSize = container
       ? { width: container.getBoundingClientRect().width, height: container.getBoundingClientRect().height }
       : typeof window !== 'undefined'
       ? { width: window.innerWidth, height: window.innerHeight }
       : { width: 0, height: 0 };
+    const contentSize = drawerRect ? { width: drawerRect.width, height: drawerRect.height } : containerSize;
 
     return (
       snapPoints?.map((snapPoint) => {
@@ -89,24 +92,24 @@ export function useSnapPoints({
         }
 
         if (isVertical(direction)) {
-          const height = isPx ? snapPointAsNumber : windowDimensions ? snapPoint * containerSize.height : 0;
+          const height = isPx ? snapPointAsNumber : windowDimensions ? snapPoint * contentSize.height : 0;
 
           if (windowDimensions) {
-            return direction === 'bottom' ? containerSize.height - height : -containerSize.height + height;
+            return direction === 'bottom' ? contentSize.height - height : -contentSize.height + height;
           }
 
           return height;
         }
-        const width = isPx ? snapPointAsNumber : windowDimensions ? snapPoint * containerSize.width : 0;
+        const width = isPx ? snapPointAsNumber : windowDimensions ? snapPoint * contentSize.width : 0;
 
         if (windowDimensions) {
-          return direction === 'right' ? containerSize.width - width : -containerSize.width + width;
+          return direction === 'right' ? contentSize.width - width : -contentSize.width + width;
         }
 
         return width;
       }) ?? []
     );
-  }, [snapPoints, windowDimensions, container]);
+  }, [snapPoints, windowDimensions, container, drawerRect]);
 
   const activeSnapPointOffset = React.useMemo(
     () => (activeSnapPointIndex !== null ? snapPointsOffset?.[activeSnapPointIndex] : null),

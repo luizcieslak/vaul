@@ -506,6 +506,7 @@ function useControllableState({ prop, defaultProp, onChange = ()=>{} }) {
 }
 
 function useSnapPoints({ activeSnapPointProp, setActiveSnapPointProp, snapPoints, drawerRef, overlayRef, fadeFromIndex, onSnapPointChange, direction = 'bottom', container, snapToSequentialPoint }) {
+    var _drawerRef_current;
     const [activeSnapPoint, setActiveSnapPoint] = useControllableState({
         prop: activeSnapPointProp,
         defaultProp: snapPoints == null ? void 0 : snapPoints[0],
@@ -537,6 +538,7 @@ function useSnapPoints({ activeSnapPointProp, setActiveSnapPointProp, snapPoints
         activeSnapPoint
     ]);
     const shouldFade = snapPoints && snapPoints.length > 0 && (fadeFromIndex || fadeFromIndex === 0) && !Number.isNaN(fadeFromIndex) && snapPoints[fadeFromIndex] === activeSnapPoint || !snapPoints;
+    const drawerRect = (_drawerRef_current = drawerRef.current) == null ? void 0 : _drawerRef_current.getBoundingClientRect();
     const snapPointsOffset = React__default.useMemo(()=>{
         const containerSize = container ? {
             width: container.getBoundingClientRect().width,
@@ -548,6 +550,10 @@ function useSnapPoints({ activeSnapPointProp, setActiveSnapPointProp, snapPoints
             width: 0,
             height: 0
         };
+        const contentSize = drawerRect ? {
+            width: drawerRect.width,
+            height: drawerRect.height
+        } : containerSize;
         var _snapPoints_map;
         return (_snapPoints_map = snapPoints == null ? void 0 : snapPoints.map((snapPoint)=>{
             const isPx = typeof snapPoint === 'string';
@@ -556,22 +562,23 @@ function useSnapPoints({ activeSnapPointProp, setActiveSnapPointProp, snapPoints
                 snapPointAsNumber = parseInt(snapPoint, 10);
             }
             if (isVertical(direction)) {
-                const height = isPx ? snapPointAsNumber : windowDimensions ? snapPoint * containerSize.height : 0;
+                const height = isPx ? snapPointAsNumber : windowDimensions ? snapPoint * contentSize.height : 0;
                 if (windowDimensions) {
-                    return direction === 'bottom' ? containerSize.height - height : -containerSize.height + height;
+                    return direction === 'bottom' ? contentSize.height - height : -contentSize.height + height;
                 }
                 return height;
             }
-            const width = isPx ? snapPointAsNumber : windowDimensions ? snapPoint * containerSize.width : 0;
+            const width = isPx ? snapPointAsNumber : windowDimensions ? snapPoint * contentSize.width : 0;
             if (windowDimensions) {
-                return direction === 'right' ? containerSize.width - width : -containerSize.width + width;
+                return direction === 'right' ? contentSize.width - width : -contentSize.width + width;
             }
             return width;
         })) != null ? _snapPoints_map : [];
     }, [
         snapPoints,
         windowDimensions,
-        container
+        container,
+        drawerRect
     ]);
     const activeSnapPointOffset = React__default.useMemo(()=>activeSnapPointIndex !== null ? snapPointsOffset == null ? void 0 : snapPointsOffset[activeSnapPointIndex] : null, [
         snapPointsOffset,
@@ -876,7 +883,7 @@ let previousBodyPosition = null;
     };
 }
 
-function Root({ open: openProp, onOpenChange, children, onDrag: onDragProp, onRelease: onReleaseProp, snapPoints, shouldScaleBackground = false, setBackgroundColorOnScale = true, closeThreshold = CLOSE_THRESHOLD, scrollLockTimeout = SCROLL_LOCK_TIMEOUT, dismissible = true, handleOnly = false, fadeFromIndex = snapPoints && snapPoints.length - 1, activeSnapPoint: activeSnapPointProp, setActiveSnapPoint: setActiveSnapPointProp, fixed, modal = true, onClose, nested, noBodyStyles = false, direction = 'bottom', defaultOpen = false, disablePreventScroll = true, snapToSequentialPoint = false, preventScrollRestoration = false, repositionInputs = true, onAnimationEnd, container, autoFocus = false }) {
+function Root({ open: openProp, onOpenChange, children, onDragStart: onDragStartProp, onDrag: onDragProp, onRelease: onReleaseProp, snapPoints, shouldScaleBackground = false, setBackgroundColorOnScale = true, closeThreshold = CLOSE_THRESHOLD, scrollLockTimeout = SCROLL_LOCK_TIMEOUT, dismissible = true, handleOnly = false, fadeFromIndex = snapPoints && snapPoints.length - 1, activeSnapPoint: activeSnapPointProp, setActiveSnapPoint: setActiveSnapPointProp, fixed, modal = true, onClose, nested, noBodyStyles = false, direction = 'bottom', defaultOpen = false, disablePreventScroll = true, snapToSequentialPoint = false, preventScrollRestoration = false, repositionInputs = true, onAnimationEnd, container, autoFocus = false }) {
     var _drawerRef_current, _drawerRef_current1;
     const [isOpen = false, setIsOpen] = useControllableState({
         defaultProp: defaultOpen,
@@ -958,6 +965,7 @@ function Root({ open: openProp, onOpenChange, children, onDrag: onDragProp, onRe
         drawerWidthRef.current = ((_drawerRef_current1 = drawerRef.current) == null ? void 0 : _drawerRef_current1.getBoundingClientRect().width) || 0;
         setIsDragging(true);
         dragStartTime.current = new Date();
+        onDragStartProp == null ? void 0 : onDragStartProp(event);
         // iOS doesn't trigger mouseUp after scrolling so we need to listen to touched in order to disallow dragging
         if (isIOS()) {
             window.addEventListener('touchend', ()=>isAllowedToDrag.current = false, {
@@ -1288,43 +1296,55 @@ function Root({ open: openProp, onOpenChange, children, onDrag: onDragProp, onRe
         isOpen
     ]);
     function onNestedOpenChange(o) {
+        var _getTranslate;
+        const currentTranslate = drawerRef.current ? (_getTranslate = getTranslate(drawerRef.current, direction)) != null ? _getTranslate : 0 : 0;
         const scale = o ? (window.innerWidth - NESTED_DISPLACEMENT) / window.innerWidth : 1;
         const initialTranslate = o ? -NESTED_DISPLACEMENT : 0;
         if (nestedOpenChangeTimer.current) {
             window.clearTimeout(nestedOpenChangeTimer.current);
         }
+        // Store the initial translate value when opening the nested drawer
+        if (o) {
+            drawerRef.current.dataset.initialTranslate = currentTranslate.toString();
+        }
         set(drawerRef.current, {
             transition: `transform ${TRANSITIONS.DURATION}s cubic-bezier(${TRANSITIONS.EASE.join(',')})`,
-            transform: isVertical(direction) ? `scale(${scale}) translate3d(0, ${initialTranslate}px, 0)` : `scale(${scale}) translate3d(${initialTranslate}px, 0, 0)`
+            transform: isVertical(direction) ? `scale(${scale}) translate3d(0, ${currentTranslate + initialTranslate}px, 0)` : `scale(${scale}) translate3d(${currentTranslate + initialTranslate}px, 0, 0)`
         });
         if (!o && drawerRef.current) {
             nestedOpenChangeTimer.current = setTimeout(()=>{
-                const translateValue = getTranslate(drawerRef.current, direction);
+                // Restore to the initial position when closing
+                const initialTranslate = Number(drawerRef.current.dataset.initialTranslate || '0');
                 set(drawerRef.current, {
                     transition: 'none',
-                    transform: isVertical(direction) ? `translate3d(0, ${translateValue}px, 0)` : `translate3d(${translateValue}px, 0, 0)`
+                    transform: isVertical(direction) ? `translate3d(0, ${initialTranslate}px, 0)` : `translate3d(${initialTranslate}px, 0, 0)`
                 });
             }, 500);
         }
     }
     function onNestedDrag(_event, percentageDragged) {
+        var _drawerRef_current;
         if (percentageDragged < 0) return;
+        // Use the stored initial translate value
+        const initialTranslate = Number(((_drawerRef_current = drawerRef.current) == null ? void 0 : _drawerRef_current.dataset.initialTranslate) || '0');
         const initialScale = (window.innerWidth - NESTED_DISPLACEMENT) / window.innerWidth;
         const newScale = initialScale + percentageDragged * (1 - initialScale);
         const newTranslate = -NESTED_DISPLACEMENT + percentageDragged * NESTED_DISPLACEMENT;
         set(drawerRef.current, {
-            transform: isVertical(direction) ? `scale(${newScale}) translate3d(0, ${newTranslate}px, 0)` : `scale(${newScale}) translate3d(${newTranslate}px, 0, 0)`,
+            transform: isVertical(direction) ? `scale(${newScale}) translate3d(0, ${initialTranslate + newTranslate}px, 0)` : `scale(${newScale}) translate3d(${initialTranslate + newTranslate}px, 0, 0)`,
             transition: 'none'
         });
     }
     function onNestedRelease(_event, o) {
+        var _drawerRef_current;
+        const initialTranslate = Number(((_drawerRef_current = drawerRef.current) == null ? void 0 : _drawerRef_current.dataset.initialTranslate) || '0');
         const dim = isVertical(direction) ? window.innerHeight : window.innerWidth;
         const scale = o ? (dim - NESTED_DISPLACEMENT) / dim : 1;
         const translate = o ? -NESTED_DISPLACEMENT : 0;
         if (o) {
             set(drawerRef.current, {
                 transition: `transform ${TRANSITIONS.DURATION}s cubic-bezier(${TRANSITIONS.EASE.join(',')})`,
-                transform: isVertical(direction) ? `scale(${scale}) translate3d(0, ${translate}px, 0)` : `scale(${scale}) translate3d(${translate}px, 0, 0)`
+                transform: isVertical(direction) ? `scale(${scale}) translate3d(0, ${initialTranslate + translate}px, 0)` : `scale(${scale}) translate3d(${initialTranslate + translate}px, 0, 0)`
             });
         }
     }
