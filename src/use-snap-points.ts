@@ -15,6 +15,7 @@ export function useSnapPoints({
   direction = 'bottom',
   container,
   snapToSequentialPoint,
+  isOpen
 }: {
   activeSnapPointProp?: number | string | null;
   setActiveSnapPointProp?(snapPoint: number | null | string): void;
@@ -26,7 +27,20 @@ export function useSnapPoints({
   direction?: DrawerDirection;
   container?: HTMLElement | null | undefined;
   snapToSequentialPoint?: boolean;
+  isOpen?: boolean;
 }) {
+  const [drawerDimensions, setDrawerDimensions] = React.useState<{ width: number; height: number } | null>(null);
+
+  React.useLayoutEffect(() => {
+    if (isOpen && drawerRef.current) {
+      const rect = drawerRef.current.getBoundingClientRect();
+      setDrawerDimensions({
+        width: rect.width,
+        height: rect.height
+      });
+    }
+  }, [isOpen]);
+  
   const [activeSnapPoint, setActiveSnapPoint] = useControllableState<string | number | null>({
     prop: activeSnapPointProp,
     defaultProp: snapPoints?.[0],
@@ -80,7 +94,7 @@ export function useSnapPoints({
       : typeof window !== 'undefined'
       ? { width: window.innerWidth, height: window.innerHeight }
       : { width: 0, height: 0 };
-    const contentSize = drawerRect ? { width: drawerRect.width, height: drawerRect.height } : containerSize;
+    const contentSize = drawerDimensions || containerSize;
 
     return (
       snapPoints?.map((snapPoint) => {
@@ -109,7 +123,7 @@ export function useSnapPoints({
         return width;
       }) ?? []
     );
-  }, [snapPoints, windowDimensions, container, drawerRect]);
+  }, [snapPoints, windowDimensions, container, drawerRect, drawerDimensions]);
 
   const activeSnapPointOffset = React.useMemo(
     () => (activeSnapPointIndex !== null ? snapPointsOffset?.[activeSnapPointIndex] : null),

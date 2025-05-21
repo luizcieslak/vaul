@@ -241,6 +241,7 @@ export function Root({
     direction,
     container,
     snapToSequentialPoint,
+    isOpen
   });
 
   usePreventScroll({
