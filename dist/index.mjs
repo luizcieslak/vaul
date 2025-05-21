@@ -1072,6 +1072,7 @@ function Root({ open: openProp, onOpenChange, children, onDragStart: onDragStart
                 transition: 'none'
             });
             if (snapPoints) {
+                console.log('on drag if snap points', snapPoints);
                 onDragSnapPoints({
                     draggedDistance
                 });
@@ -1296,10 +1297,11 @@ function Root({ open: openProp, onOpenChange, children, onDragStart: onDragStart
         isOpen
     ]);
     function onNestedOpenChange(o) {
-        var _getTranslate;
-        const currentTranslate = drawerRef.current ? (_getTranslate = getTranslate(drawerRef.current, direction)) != null ? _getTranslate : 0 : 0;
+        if (snapPoints && snapPoints.length > 0) {
+            return;
+        }
         const scale = o ? (window.innerWidth - NESTED_DISPLACEMENT) / window.innerWidth : 1;
-        const initialTranslate = o ? -NESTED_DISPLACEMENT : 0;
+        const initialTranslate1 = o ? -NESTED_DISPLACEMENT : 0;
         if (nestedOpenChangeTimer.current) {
             window.clearTimeout(nestedOpenChangeTimer.current);
         }
@@ -1309,35 +1311,39 @@ function Root({ open: openProp, onOpenChange, children, onDragStart: onDragStart
         }
         set(drawerRef.current, {
             transition: `transform ${TRANSITIONS.DURATION}s cubic-bezier(${TRANSITIONS.EASE.join(',')})`,
-            transform: isVertical(direction) ? `scale(${scale}) translate3d(0, ${currentTranslate + initialTranslate}px, 0)` : `scale(${scale}) translate3d(${currentTranslate + initialTranslate}px, 0, 0)`
+            transform: isVertical(direction) ? `scale(${scale}) translate3d(0, ${currentTranslate + initialTranslate1}px, 0)` : `scale(${scale}) translate3d(${currentTranslate + initialTranslate1}px, 0, 0)`
         });
         if (!o && drawerRef.current) {
             nestedOpenChangeTimer.current = setTimeout(()=>{
                 // Restore to the initial position when closing
-                const initialTranslate = Number(drawerRef.current.dataset.initialTranslate || '0');
+                const initialTranslate1 = Number(drawerRef.current.dataset.initialTranslate || '0');
                 set(drawerRef.current, {
                     transition: 'none',
-                    transform: isVertical(direction) ? `translate3d(0, ${initialTranslate}px, 0)` : `translate3d(${initialTranslate}px, 0, 0)`
+                    transform: isVertical(direction) ? `translate3d(0, ${initialTranslate1}px, 0)` : `translate3d(${initialTranslate1}px, 0, 0)`
                 });
             }, 500);
         }
     }
     function onNestedDrag(_event, percentageDragged) {
         var _drawerRef_current;
+        if (snapPoints && snapPoints.length > 0) {
+            return;
+        }
         if (percentageDragged < 0) return;
         // Use the stored initial translate value
-        const initialTranslate = Number(((_drawerRef_current = drawerRef.current) == null ? void 0 : _drawerRef_current.dataset.initialTranslate) || '0');
+        const initialTranslate1 = Number(((_drawerRef_current = drawerRef.current) == null ? void 0 : _drawerRef_current.dataset.initialTranslate) || '0');
         const initialScale = (window.innerWidth - NESTED_DISPLACEMENT) / window.innerWidth;
         const newScale = initialScale + percentageDragged * (1 - initialScale);
         const newTranslate = -NESTED_DISPLACEMENT + percentageDragged * NESTED_DISPLACEMENT;
         set(drawerRef.current, {
-            transform: isVertical(direction) ? `scale(${newScale}) translate3d(0, ${initialTranslate + newTranslate}px, 0)` : `scale(${newScale}) translate3d(${initialTranslate + newTranslate}px, 0, 0)`,
+            transform: isVertical(direction) ? `scale(${newScale}) translate3d(0, ${initialTranslate1 + newTranslate}px, 0)` : `scale(${newScale}) translate3d(${initialTranslate1 + newTranslate}px, 0, 0)`,
             transition: 'none'
         });
     }
     function onNestedRelease(_event, o) {
-        var _drawerRef_current;
-        const initialTranslate = Number(((_drawerRef_current = drawerRef.current) == null ? void 0 : _drawerRef_current.dataset.initialTranslate) || '0');
+        if (snapPoints && snapPoints.length > 0) {
+            return;
+        }
         const dim = isVertical(direction) ? window.innerHeight : window.innerWidth;
         const scale = o ? (dim - NESTED_DISPLACEMENT) / dim : 1;
         const translate = o ? -NESTED_DISPLACEMENT : 0;
@@ -1633,13 +1639,11 @@ function NestedRoot({ onDrag, onOpenChange, open: nestedIsOpen, ...rest }) {
     if (!onNestedDrag) {
         throw new Error('Drawer.NestedRoot must be placed in another drawer');
     }
-    React__default.useEffect(()=>{
-        if (nestedIsOpen) {
-            onNestedOpenChange(true);
-        }
-    }, [
-        nestedIsOpen
-    ]);
+    // React.useEffect(() => {
+    //   if (nestedIsOpen) {
+    //     onNestedOpenChange(true);
+    //   }
+    // }, [nestedIsOpen]);
     return /*#__PURE__*/ React__default.createElement(Root, {
         nested: true,
         open: nestedIsOpen,
@@ -1652,6 +1656,7 @@ function NestedRoot({ onDrag, onOpenChange, open: nestedIsOpen, ...rest }) {
         },
         onOpenChange: (o)=>{
             if (o) {
+                // check this? is calling parent onOpenChange event?
                 onNestedOpenChange(o);
             }
             onOpenChange == null ? void 0 : onOpenChange(o);
