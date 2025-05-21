@@ -529,7 +529,12 @@ function useControllableState({ prop, defaultProp, onChange = ()=>{} }) {
 
 function useSnapPoints({ activeSnapPointProp, setActiveSnapPointProp, snapPoints, drawerRef, overlayRef, fadeFromIndex, onSnapPointChange, direction = 'bottom', container, snapToSequentialPoint, isOpen }) {
     var _drawerRef_current;
-    const [drawerDimensions, setDrawerDimensions] = React__namespace.default.useState(null);
+    const drawerRect = (_drawerRef_current = drawerRef.current) == null ? void 0 : _drawerRef_current.getBoundingClientRect();
+    // Add state for dynamic dimensions
+    const [drawerDimensions, setDrawerDimensions] = React__namespace.default.useState(drawerRect ? {
+        width: drawerRect.width,
+        height: drawerRect.height
+    } : null);
     React__namespace.default.useLayoutEffect(()=>{
         if (isOpen && drawerRef.current) {
             const rect = drawerRef.current.getBoundingClientRect();
@@ -572,7 +577,6 @@ function useSnapPoints({ activeSnapPointProp, setActiveSnapPointProp, snapPoints
         activeSnapPoint
     ]);
     const shouldFade = snapPoints && snapPoints.length > 0 && (fadeFromIndex || fadeFromIndex === 0) && !Number.isNaN(fadeFromIndex) && snapPoints[fadeFromIndex] === activeSnapPoint || !snapPoints;
-    const drawerRect = (_drawerRef_current = drawerRef.current) == null ? void 0 : _drawerRef_current.getBoundingClientRect();
     const snapPointsOffset = React__namespace.default.useMemo(()=>{
         const containerSize = container ? {
             width: container.getBoundingClientRect().width,
@@ -584,7 +588,10 @@ function useSnapPoints({ activeSnapPointProp, setActiveSnapPointProp, snapPoints
             width: 0,
             height: 0
         };
-        const contentSize = drawerDimensions || containerSize;
+        const contentSize = drawerDimensions || (drawerRect ? {
+            width: drawerRect.width,
+            height: drawerRect.height
+        } : containerSize);
         var _snapPoints_map;
         return (_snapPoints_map = snapPoints == null ? void 0 : snapPoints.map((snapPoint)=>{
             const isPx = typeof snapPoint === 'string';
@@ -609,7 +616,6 @@ function useSnapPoints({ activeSnapPointProp, setActiveSnapPointProp, snapPoints
         snapPoints,
         windowDimensions,
         container,
-        drawerRect,
         drawerDimensions
     ]);
     const activeSnapPointOffset = React__namespace.default.useMemo(()=>activeSnapPointIndex !== null ? snapPointsOffset == null ? void 0 : snapPointsOffset[activeSnapPointIndex] : null, [
